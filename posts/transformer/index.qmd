@@ -17,9 +17,9 @@ categories: [Attention, Transformers, Machine Learning]
 
 Prior to introduction of Transformers, the state of the art algorithm for acheiving state of the art results on various NLP tasks were RNN's and its variants e.g LSTM, BiDirectional LSTM etc.
 
-While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues.
-Linear interaction distance
-Lack of parallelizability
+While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues.<br>
+Linear interaction distance<br>
+Lack of parallelizability<br>
 
 
 </p>
