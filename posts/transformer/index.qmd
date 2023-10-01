@@ -11,17 +11,15 @@ categories: [Attention, Transformers, Machine Learning]
 
 <p>I had a garbled understanding of Transformer architecture after consulting blogs, videos and coursera course. What made it finally clicked for me is Stanford CS 224N lecture by John Hewitt. He does a phenomenal job and I will strongly encourage to check it out. If you work with LLM's the 1 hour and 17 minutes is worth the time investment.</p> 
 [Stanford CS224N NLP | Lecture 8 - Self-Attention and Transformers](https://youtu.be/nTQUwghvy5Q)
-<p>Before diving into the details of transformer a little history.<br>
+<p>Before diving into the details of transformer a little history.<br></p>
 
-### Motivation for Attention
+### Motivation for Transformers
 
-Prior to introduction of Transformers, the state of the art algorithm for acheiving state of the art results on various NLP tasks were RNN's and its variants e.g LSTM, BiDirectional LSTM etc.
+<p>Prior to introduction of Transformers, the state of the art algorithm for acheiving state of the art results on various NLP tasks were RNN's and its variants e.g LSTM, BiDirectional LSTM etc.
 
-While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues.<br>
-Linear interaction distance<br>
-Lack of parallelizability<br>
-
-
+While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues2.<br>  
+-Linear interaction distance<br>  
+-Lack of parallelizability<br>  
 </p>
 
 
