@@ -1,0 +1,17 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Byte Sized ML"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/haadkhan
+      - icon: linkedin
+        href: https://linkedin.com/in/haadkhan
+format:
+  html:
+    theme: sandstone
+    css: styles.css

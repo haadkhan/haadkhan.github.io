@@ -1,0 +1,29 @@
+---
+title: "About"
+image: profile.jpg
+about:
+  template: trestles
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://linkedin.com/in/haadkhan
+    - icon: github
+      text: Github
+      href: https://github.com/haadkhan
+
+---
+I am Haad, an applied scientist working at the intersection of LLM and Healthcare. Outside of work he can be found on a sand court playing 🏐 or pickleball 🏓
+
+The name of the blog "byte sized ML" is inspired from byte sized engineering https://www.bytesizedengineering.com/
+## Education
+
+University of Michigan  | Ann Arbor MI
+MS in NLP & Information Retreival |  2014 - 2016
+
+GIK University
+B.Eng | Aug 2010 - May 2014
+
+## Experience
+
+Oracle | Sr. Applied Scientist | Mar 2018 - present
+Cerebri AI | Data Scientist | Feb 2016 - Feb 2018
