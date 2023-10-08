@@ -3,6 +3,8 @@ title: "Building Blocks of Transformers: 1. Self Attention"
 format:
   html:
     code-fold: true
+execute:
+  echo: false
 jupyter: python3
 author: "Haad Khan"
 date: "2023-10-01"
@@ -13,42 +15,31 @@ categories: [Attention, Transformers, Machine Learning]
 [Stanford CS224N NLP | Lecture 8 - Self-Attention and Transformers](https://youtu.be/nTQUwghvy5Q)
 <p>Before diving into the details of transformer a little history.<br></p>
 
-### Motivation for Transformers
+#### Motivation for Transformers
 
 <p>Prior to introduction of Transformers, the state of the art algorithm for acheiving state of the art results on various NLP tasks were RNN's and its variants e.g LSTM, BiDirectional LSTM etc.
+While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues. The major ones being the following.</br>
 
-While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues2.<br>  
--Linear interaction distance<br>  
--Lack of parallelizability<br>  
+**a). Linear interaction distance**
+
+**b). Lack of parallelizability**
+
+Transformer solve the above problems but have their own issues which will come up later. Transformer is illustrated by the diagram below.</br>
+ ![transformer-model-architecture](The-Transformer-model-architecture.jpg){width=300}
+
+The diagram is complex but when approached as a submodules the algorithm is composed of its starts to make sense. In this note the submodule we will look at it Self-Attention.
+
+The words from natural language go through a text encoder. Numerous technqiues exist for encoding, but in the paper the choice authors made is of using byte pair encoding. [Here](https://huggingface.co/learn/nlp-course/chapter6/5) is a good explainer for byte pair encoding. 
+
+The result of an encoder is a vector for each of the word. 
+
+The main idea behind self-attention is that instead of using a fixed embedding for each token, we can use the whole sequence to compute a weighted average of each embedding. Another way to formulate this is to say that given a sequence of token embeddings x1, ..., xn, self-attention produces a sequence of new embeddings x1′ , ..., xn′ where each x′i is a linear combination of all the xj:
+
+References
+1). https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)#/media/File:The-Transformer-model-architecture.png
+1). A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin.
+Attention is all you need. In Advances in Neural Information Processing Systems, pages 6000–6010, 2017
+2). Stanford Course Link
+3). Stanford Doc link
+4). https://huggingface.co/learn/nlp-course/chapter6/5?fw=pt
 </p>
-
-
-```{python}
-# | label: Attention Implementation
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-
-class ScaledDotProductAttention(nn.Module):
-    """Scaled Dot-Product Attention"""
-
-    def __init__(self, temperature, attn_dropout=0.1):
-        super().__init__()
-        self.temperature = temperature
-        self.dropout = nn.Dropout(attn_dropout)
-
-    def forward(self, q, k, v, mask=None):
-
-        attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
-
-        if mask is not None:
-            attn = attn.masked_fill(mask == 0, -1e9)
-
-        attn = self.dropout(F.softmax(attn, dim=-1))
-        output = torch.matmul(attn, v)
-
-        return output, attn
-
-
-```
