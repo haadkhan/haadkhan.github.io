@@ -62,6 +62,8 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <link rel="stylesheet" href="../../styles.css">
 </head>
@@ -162,11 +164,20 @@ Before diving into the details of transformer a little history.<br>
 <p><strong>a). Linear interaction distance</strong></p>
 <p><strong>b). Lack of parallelizability</strong></p>
 <p>Transformer solve the above problems but have their own issues which will come up later. Transformer is illustrated by the diagram below.<br> <img src="The-Transformer-model-architecture.jpg" class="img-fluid" width="300" alt="transformer-model-architecture"></p>
-<p>The diagram is complex but when approached as a submodules the algorithm is composed of its starts to make sense. In this note the submodule we will look at it Self-Attention.</p>
-<p>The words from natural language go through a text encoder. Numerous technqiues exist for encoding, but in the paper the choice authors made is of using byte pair encoding. <a href="https://huggingface.co/learn/nlp-course/chapter6/5">Here</a> is a good explainer for byte pair encoding.</p>
-<p>The result of an encoder is a vector for each of the word.</p>
-<p>The main idea behind self-attention is that instead of using a fixed embedding for each token, we can use the whole sequence to compute a weighted average of each embedding. Another way to formulate this is to say that given a sequence of token embeddings x1, …, xn, self-attention produces a sequence of new embeddings x1′ , …, xn′ where each x′i is a linear combination of all the xj:</p>
-References 1). https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)#/media/File:The-Transformer-model-architecture.png 1). A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, pages 6000–6010, 2017 2). Stanford Course Link 3). Stanford Doc link 4). https://huggingface.co/learn/nlp-course/chapter6/5?fw=pt
+<p>The diagram is complex but when approached as a submodules the algorithm is composed of its starts to make sense. In this note the submodule we will look at is Self-Attention.</p>
+<p>The words from natural language go through a text tokenizer. Numerous technqiues exist for tokenize, but a very common method for tokenizing text is byte pair encoding. <a href="https://huggingface.co/learn/nlp-course/chapter6/5">Here</a> is a good explainer for byte pair encoding.</p>
+<p>The tokenizer will transform a sentence into a list of numeral integers or a list of tokens. Given a token <span class="math inline">\(x_i\)</span> in the list of tokens <span class="math inline">\(x_1:n\)</span> we define a query <span class="math inline">\(q_i = Qx_i\)</span>, for matrix Q. A vector key and value are also needed such that <span class="math inline">\(k_i = Kx_i\)</span> and <span class="math inline">\(v_i = Vx_i\)</span>.</p>
+<p>The eventual representation of the list of tokens <span class="math inline">\(h_i\)</span> is dot product of the value of the sequence. <span class="math display">\[
+h_i = \sum_{j=1}^{n} \alpha_{ij} v_j,
+\]</span> The weights <span class="math inline">\(\alpha_ij\)</span> selects the data to pull up. The weights are defined by calculating the relation between key and query <span class="math inline">\(q_i^Tk_j\)</span> and calculating the softmax over the sequence. <span class="math display">\[
+\alpha_ij = \frac {exp(q_i^T k_j)}{\sum_{j^`=1}^{n}exp(q_i^Tk_{j^`})}
+\]</span></p>
+<p>Self-attention instead of using a fixed embedding for each token, leverages the whole sequence to determine what other tokens should represent <span class="math inline">\(x_i\)</span> in context.</p>
+References 1). https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)#/media/File:The-Transformer-model-architecture.png 1). Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin: “Attention Is All You Need”, 2017; <a href="http://arxiv.org/abs/1706.03762">arXiv:1706.03762</a> 2). <a href="http://web.stanford.edu/class/cs224n/index.html">Stanford CS224N NLP</a>
+<p></p>
+3). <a href="http://web.stanford.edu/class/cs224n/readings/cs224n-self-attention-transformers-2023_draft.pdf">Stanford CS224N NLP | Self-Attention and Transformers</a>
+<p></p>
+4). https://huggingface.co/learn/nlp-course/chapter6/5?fw=pt
 <p></p>
 
 
