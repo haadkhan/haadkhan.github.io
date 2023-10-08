@@ -1,0 +1,30 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "I am Haad, an applied scientist working at the intersection of LLM and Healthcare. Outside of work he can be found on a sand court playing 🏐 or pickleball 🏓\nThe name of the blog “byte sized ML” is inspired from byte sized engineering https://www.bytesizedengineering.com/ ## Education\nUniversity of Michigan | Ann Arbor MI MS in NLP & Information Retreival | 2014 - 2016\nGIK University B.Eng | Aug 2010 - May 2014"
+  },
+  {
+    "objectID": "about.html#experience",
+    "href": "about.html#experience",
+    "title": "About",
+    "section": "Experience",
+    "text": "Experience\nOracle | Sr. Applied Scientist | Mar 2018 - present Cerebri AI | Data Scientist | Feb 2016 - Feb 2018"
+  },
+  {
+    "objectID": "posts/transformer/index.html",
+    "href": "posts/transformer/index.html",
+    "title": "Building Blocks of Transformers: 1. Self Attention",
+    "section": "",
+    "text": "I had a garbled understanding of Transformer architecture after consulting blogs, videos and coursera course. What made it finally clicked for me is Stanford CS 224N lecture by John Hewitt. He does a phenomenal job and I will strongly encourage to check it out. If you work with LLM’s the 1 hour and 17 minutes is worth the time investment.\n\nStanford CS224N NLP | Lecture 8 - Self-Attention and Transformers\n\nBefore diving into the details of transformer a little history.\n\n\nMotivation for Transformers\n\nPrior to introduction of Transformers, the state of the art algorithm for acheiving state of the art results on various NLP tasks were RNN’s and its variants e.g LSTM, BiDirectional LSTM etc. While the sequential nature of RNN lend itself well to modelling sequential data, it had some issues. The major ones being the following.\na). Linear interaction distance\nb). Lack of parallelizability\nTransformer solve the above problems but have their own issues which will come up later. Transformer is illustrated by the diagram below. \nThe diagram is complex but when approached as a submodules the algorithm is composed of its starts to make sense. In this note the submodule we will look at it Self-Attention.\nThe words from natural language go through a text encoder. Numerous technqiues exist for encoding, but in the paper the choice authors made is of using byte pair encoding. Here is a good explainer for byte pair encoding.\nThe result of an encoder is a vector for each of the word.\nThe main idea behind self-attention is that instead of using a fixed embedding for each token, we can use the whole sequence to compute a weighted average of each embedding. Another way to formulate this is to say that given a sequence of token embeddings x1, …, xn, self-attention produces a sequence of new embeddings x1′ , …, xn′ where each x′i is a linear combination of all the xj:\nReferences 1). https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)#/media/File:The-Transformer-model-architecture.png 1). A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, pages 6000–6010, 2017 2). Stanford Course Link 3). Stanford Doc link 4). https://huggingface.co/learn/nlp-course/chapter6/5?fw=pt"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Byte Sized ML",
+    "section": "",
+    "text": "Building Blocks of Transformers: 1. Self Attention\n\n\n\n\n\n\n\nAttention\n\n\nTransformers\n\n\nMachine Learning\n\n\n\n\n\n\n\n\n\n\n\nOct 1, 2023\n\n\nHaad Khan\n\n\n\n\n\n\nNo matching items"
+  }
+]
