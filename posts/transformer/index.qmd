@@ -37,7 +37,7 @@ The eventual representation of the list of tokens  $h_i$ is dot product of the v
 $$
 h_i = \sum_{j=1}^{n} \alpha_{ij} v_j,
 $$
-The weights $\alpha_ij$ selects the data to pull up. The weights are defined by calculating the relation between key and query $q_i^Tk_j$ and calculating the softmax over the sequence.
+The weights $\alpha_{ij}$ selects the data to pull up. The weights are defined by calculating the relation between key and query $q_i^Tk_j$ and calculating the softmax over the sequence.
 $$
 \alpha_ij = \frac {exp(q_i^T k_j)}{\sum_{j^`=1}^{n}exp(q_i^Tk_{j^`})}
 $$

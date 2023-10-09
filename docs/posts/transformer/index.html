@@ -169,7 +169,7 @@ Before diving into the details of transformer a little history.<br>
 <p>The tokenizer will transform a sentence into a list of numeral integers or a list of tokens. Given a token <span class="math inline">\(x_i\)</span> in the list of tokens <span class="math inline">\(x_1:n\)</span> we define a query <span class="math inline">\(q_i = Qx_i\)</span>, for matrix Q. A vector key and value are also needed such that <span class="math inline">\(k_i = Kx_i\)</span> and <span class="math inline">\(v_i = Vx_i\)</span>.</p>
 <p>The eventual representation of the list of tokens <span class="math inline">\(h_i\)</span> is dot product of the value of the sequence. <span class="math display">\[
 h_i = \sum_{j=1}^{n} \alpha_{ij} v_j,
-\]</span> The weights <span class="math inline">\(\alpha_ij\)</span> selects the data to pull up. The weights are defined by calculating the relation between key and query <span class="math inline">\(q_i^Tk_j\)</span> and calculating the softmax over the sequence. <span class="math display">\[
+\]</span> The weights <span class="math inline">\(\alpha_{ij}\)</span> selects the data to pull up. The weights are defined by calculating the relation between key and query <span class="math inline">\(q_i^Tk_j\)</span> and calculating the softmax over the sequence. <span class="math display">\[
 \alpha_ij = \frac {exp(q_i^T k_j)}{\sum_{j^`=1}^{n}exp(q_i^Tk_{j^`})}
 \]</span></p>
 <p>Self-attention instead of using a fixed embedding for each token, leverages the whole sequence to determine what other tokens should represent <span class="math inline">\(x_i\)</span> in context.</p>
