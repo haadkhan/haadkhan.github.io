@@ -7,7 +7,7 @@ execute:
   echo: false
 jupyter: python3
 author: "Haad Khan"
-date: "2023-10-01"
+date: "2023-11-01"
 categories: [Attention, Transformers, Machine Learning]
 ---
 
