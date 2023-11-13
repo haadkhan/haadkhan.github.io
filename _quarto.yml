@@ -11,13 +11,12 @@ website:
         href: https://github.com/haadkhan
       - icon: linkedin
         href: https://linkedin.com/in/haadkhan
+  body-footer: |
+      <!-- 100% privacy-first analytics -->
+      <script async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+      <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt="" referrerpolicy="no-referrer-when-downgrade" /></noscript>
+
 format:
   html:
     theme: sandstone
     css: styles.css
-
-quarto:
-  body-footer: |
-    <script async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
-    <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt="" referrerpolicy="no-referrer-when-downgrade" /></noscript>
-
