@@ -10,28 +10,34 @@ author: "Haad Khan"
 date: "2023-11-12"
 categories: [Attention, Transformers, Machine Learning]
 ---
-Given the sequence "He can always be seen working hard." This sequence is distinctly different from "He can hardly be seen working". 
-Subtle change in the position of the word can make a distinct difference in the meaning. 
+**1. Positional Encoding**
+Given the sequence *He can always be seen working hard.* This sequence is distinctly different from *He can hardly be seen working*. As can be seen slight change in the position of the word conveys a drastically different meaning.
 
-RNN's are traditionally deployed for NLP because the order of the sequence defines the order of the rollout. Thus it is capable of 
-representing two different sequences. 
+RNN's are traditionally deployed for NLP because the order of the sequence defines the order of the rollout. Thus it is capable of representing two different sequences. Vanilla Self-attention lacks the notion of the order of the sequence. This can be seen from the attention operation on both the sequences. The first sequence $s_0$ can be represented as set of vectors 
+$$
+\textbf{x}_{1:n} = [ \textbf{x}_{He};\textbf{x}_{can};\textbf{x}_{always};\textbf{x}_{be} ;\textbf{x}_{seen};\textbf{x}_{working};\textbf{x}_{hard};\textbf{x}_{s1}] \in \mathrm{R^{7xd}}
+$$
+The softmax or the weight $\alpha_{s_{1,0}}$ by which we look up first word by 
+$$
+\alpha_{s1} = softmax([q^\intercal_{s1}k_{He};q^\intercal_{s1}k_{can};q^\intercal_{s1}k_{always};
+q^\intercal_{s1}k_{be} ;
+q^\intercal_{s1}k_{seen};
+q^\intercal_{s1}k_{working};
+q^\intercal_{s1}k_{hard};
+q^\intercal_{s1}k_{s1}])
+$$
+For the reordered sentence $s_0$ *He can hardly be seen working*. The $\alpha_{s2}$ will be identical to attention of the first sequence since the numerator hasn’t changed, and the denominator hasn’t changed; only the terms are rearranged in the sum. This all comes back
+down to the two facts that (1) the representation of x is not position-
+dependent; it’s just Ew for whatever word w, and (2) there’s no
+dependence on position in the self-attention operations.
 
-Self attention is devoid of the notion of the order of the sequence. 
+<br>**Representating Position via learned embedding**<\br>
+A common way to encode the position of the word/token is to encode positional information in the  input vector itself. 
+$$
+\tilde{x_{i}} = P_{i} + x_{i}
+$$
+And perform self attention on the position encoded vector. 
 
-Position representation through learned embeddings. 
-A common way to encode the position of the word/token is to use vectors that are already position dependent
- P ∈ RN×d,
-
- We then simply add embedded representation of the position of a
-word to its word embedding:
-˜xi = Pi + xi (12)
-
-and perform self-attention as we otherwise would. Now, the self-
-attention operation can use the embedding Pi to look at the word at
-position i differently than if that word were at position j. This is done,
-e.g., in the BERT paper [ Devlin et al., 2019] 
-
-Another way to do this is to change the self attention operation itself. 
-
-2.3 Elementwise nonlinearity
+**2 Nonlinear element-wise operation**
+Consider the scenario where multiple layers of self-attention are piled on top of each other. Could this arrangement potentially serve as a substitute for the traditionally used stacked LSTM layers? There appears to be a missing component when we think about this intuitively - the elementwise nonlinear functions that are a staple in typical deep learning models. Interestingly, when you combine two layers of self-attention, the resulting structure bears a striking resemblance to that of a solitary self-attention layer.
 
