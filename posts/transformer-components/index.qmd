@@ -41,3 +41,17 @@ And perform self attention on the position encoded vector.
 **2 Nonlinear element-wise operation**
 Consider the scenario where multiple layers of self-attention are piled on top of each other. Could this arrangement potentially serve as a substitute for the traditionally used stacked LSTM layers? There appears to be a missing component when we think about this intuitively - the elementwise nonlinear functions that are a staple in typical deep learning models. Interestingly, when you combine two layers of self-attention, the resulting structure bears a striking resemblance to that of a solitary self-attention layer.
 
+It's usual to follow a self-attention layer with a feed-forward network that processes each word representation individually.
+$$
+h_{FF} = W_2 ReLU(W1h_{self-attention} + b1) + b2
+$$
+**3 Future masking**
+
+In a Transformer, there’s nothing explicit in the self-attention weight α that says not to look at indices j > i when representing token i. In practice, we enforce this constraint simply adding a large negative constant to the input to the softmax.
+
+$$
+a_{ij,masked} = \left\{ \begin{array}{cl}
+a_{ij} & : \ j \leq i \\
+0 & : \ otherwise
+\end{array} \right.
+$$

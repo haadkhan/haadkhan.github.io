@@ -150,15 +150,31 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<p>Given the sequence <em>He can always be seen working hard.</em> This sequence is distinctly different from <em>He can hardly be seen working</em>. As can be seen slight change in the position of the word conveys a drastically different meaning.</p>
+<p><strong>1. Positional Encoding</strong> Given the sequence <em>He can always be seen working hard.</em> This sequence is distinctly different from <em>He can hardly be seen working</em>. As can be seen slight change in the position of the word conveys a drastically different meaning.</p>
 <p>RNN’s are traditionally deployed for NLP because the order of the sequence defines the order of the rollout. Thus it is capable of representing two different sequences. Vanilla Self-attention lacks the notion of the order of the sequence. This can be seen from the attention operation on both the sequences. The first sequence <span class="math inline">\(s_0\)</span> can be represented as set of vectors <span class="math display">\[
-\textbf{x}_{1:n} = [ \textbf{x}_{He};\textbf{x}_{can};\textbf{x}_{always};\textbf{x}_{be} ;\textbf{x}_{seen};\textbf{x}_{working};\textbf{x}_{hard};\textbf{x}_{s1}] \in \mathrm{R^{5xd}}
+\textbf{x}_{1:n} = [ \textbf{x}_{He};\textbf{x}_{can};\textbf{x}_{always};\textbf{x}_{be} ;\textbf{x}_{seen};\textbf{x}_{working};\textbf{x}_{hard};\textbf{x}_{s1}] \in \mathrm{R^{7xd}}
+\]</span> The softmax or the weight <span class="math inline">\(\alpha_{s_{1,0}}\)</span> by which we look up first word by <span class="math display">\[
+\alpha_{s1} = softmax([q^\intercal_{s1}k_{He};q^\intercal_{s1}k_{can};q^\intercal_{s1}k_{always};
+q^\intercal_{s1}k_{be} ;
+q^\intercal_{s1}k_{seen};
+q^\intercal_{s1}k_{working};
+q^\intercal_{s1}k_{hard};
+q^\intercal_{s1}k_{s1}])
+\]</span> For the reordered sentence <span class="math inline">\(s_0\)</span> <em>He can hardly be seen working</em>. The <span class="math inline">\(\alpha_{s2}\)</span> will be identical to attention of the first sequence since the numerator hasn’t changed, and the denominator hasn’t changed; only the terms are rearranged in the sum. This all comes back down to the two facts that (1) the representation of x is not position- dependent; it’s just Ew for whatever word w, and (2) there’s no dependence on position in the self-attention operations.</p>
+<p><br><strong>Representating Position via learned embedding</strong>&lt;&gt; A common way to encode the position of the word/token is to encode positional information in the input vector itself. <span class="math display">\[
+\tilde{x_{i}} = P_{i} + x_{i}
+\]</span> And perform self attention on the position encoded vector.</p>
+<p><strong>2 Nonlinear element-wise operation</strong> Consider the scenario where multiple layers of self-attention are piled on top of each other. Could this arrangement potentially serve as a substitute for the traditionally used stacked LSTM layers? There appears to be a missing component when we think about this intuitively - the elementwise nonlinear functions that are a staple in typical deep learning models. Interestingly, when you combine two layers of self-attention, the resulting structure bears a striking resemblance to that of a solitary self-attention layer.</p>
+<p>It’s usual to follow a self-attention layer with a feed-forward network that processes each word representation individually. <span class="math display">\[
+h_{FF} = W_2 ReLU(W1h_{self-attention} + b1) + b2
+\]</span> <strong>3 Future masking</strong></p>
+<p>In a Transformer, there’s nothing explicit in the self-attention weight α that says not to look at indices j &gt; i when representing token i. In practice, we enforce this constraint simply adding a large negative constant to the input to the softmax.</p>
+<p><span class="math display">\[
+a_{ij,masked} = \left\{ \begin{array}{cl}
+a_{ij} &amp; : \ j \leq i \\
+0 &amp; : \ otherwise
+\end{array} \right.
 \]</span></p>
-<p><strong>Position representation through learned embeddings.</strong> A common way to encode the position of the word/token is to use vectors that are already position dependent. <span class="math inline">\(P ∈ RN×d\)</span></p>
-<p>We then simply add embedded representation of the position of a word to its word embedding: ˜xi = Pi + xi (12)</p>
-<p>and perform self-attention as we otherwise would. Now, the self- attention operation can use the embedding Pi to look at the word at position i differently than if that word were at position j. This is done, e.g., in the BERT paper [ Devlin et al., 2019]</p>
-<p>Another way to do this is to change the self attention operation itself.</p>
-<p>2.3 Elementwise nonlinearity</p>
 
 
 
