@@ -1,0 +1,24 @@
+---
+title: "Building Blocks of Transformers: 3. Extending single-head attention to multi-head attention"
+format:
+  html:
+    code-fold: true
+execute:
+  echo: false
+jupyter: python3
+author: "Haad Khan"
+date: "2023-12-01"
+categories: [Multihead Attention]
+---
+The attention module is typically extended into multiple attention modules sometimes referred to as attention heads. Multiple attention heads operate independently allowing the model to process different part of sequence differently. 
+
+**Stacking multiple single-head attention layers**
+
+
+**Benefits of Multi-Head Attention**
+
+Diverse Perspectives: By having multiple attention heads, the model can view the input data from different perspectives, allowing it to capture more complex patterns.
+
+Reduced Overfitting: The ability to focus on various aspects of the data can help reduce the risk of overfitting, as the model doesn't rely solely on a single representation.
+
+Improved Performance: Multi-head attention often leads to better performance in tasks like translation, summarization, and text classification, owing to its flexibility and robustness.
