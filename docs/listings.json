@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/transformer-mha/index.html",
       "/posts/transformer-components/index.html",
       "/posts/transformer/index.html"
     ]
