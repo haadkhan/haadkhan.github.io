@@ -8,14 +8,14 @@ execute:
 jupyter: python3
 author: "Haad Khan"
 date: "2023-12-01"
-categories: [Multihead Attention]
+categories: [Multihead-Attention]
 ---
 The attention module is typically extended into multiple attention modules sometimes referred to as attention heads. Multiple attention heads operate independently allowing the model to process different part of sequence differently. 
 
 **Stacking multiple single-head attention layers**
-The transformer encoder is a stack of multiple attention heads $num_head$ number of times. 
+<p>The transformer encoder is a stack of multiple attention heads $num\_head$ number of times. </p>
  ![multi-head-attention](multi-head-attention.png){width=300}
-After computing the attention weights and context vectors form all heads are transposed to the shape of (b, num_tokens, num_heads, head_dim). The vectors are flattened into (b, num_tokens, d_out), effectively combining the outputs from all heads. 
+<p>After computing the attention weights and context vectors form all heads are transposed to the shape of (b, num_tokens, num_heads, head_dim). The vectors are flattened into (b, num_tokens, d_out), effectively combining the outputs from all heads. </p>
 
 **Benefits of Multi-Head Attention**
 
