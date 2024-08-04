@@ -1,0 +1,101 @@
+---
+title: "Counting Number of Parameters in GPT2"
+format:
+  html:
+    code-fold: false
+execute:
+  enabled: false
+jupyter: python3
+author: "Haad Khan"
+date: "2024-05-29"
+categories: [Attention, Transformers, GPT2, Math]
+---
+<p>While going through the [Let's reproduce GPT-2(124M)](https://youtu.be/l8pRSuU81PU) I fell into the rabit hole of how the 124M parameter are distributed across the decoder of the transformer. 
+
+```{python eval=false}
+!pip install transformers torch
+```
+
+```{python eval=false}
+from transformers import GPT2Model
+model = GPT2Model.from_pretrained('openai-community/gpt2')
+```
+
+<p>Model String object contains the following information about the architecture.</p>
+```{python eval=false}
+print(model)
+```
+```
+GPT2Model(
+  (wte): Embedding(50257, 768)
+  (wpe): Embedding(1024, 768)
+  (drop): Dropout(p=0.1, inplace=False)
+  (h): ModuleList(
+    (0-11): 12 x GPT2Block(
+      (ln_1): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+      (attn): GPT2SdpaAttention(
+        (c_attn): Conv1D()
+        (c_proj): Conv1D()
+        (attn_dropout): Dropout(p=0.1, inplace=False)
+        (resid_dropout): Dropout(p=0.1, inplace=False)
+      )
+      (ln_2): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+      (mlp): GPT2MLP(
+        (c_fc): Conv1D()
+        (c_proj): Conv1D()
+        (act): NewGELUActivation()
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+  )
+  (ln_f): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+)
+```
+<p>Lets write a utility to sum all the parameters of the model. I am using the numerize library to print in a more eye friendly format.</p>
+
+```{python eval=false}
+from numerize import numerize as n
+total_params = sum(p.numel() for p in model.parameters())
+print("number of params in model: ", n.numerize(total_params))
+```
+```
+number of params in model: 124.44M
+```
+Knowing the total number of parameters, lets break it down on a per layer basis. Before we do that, lets lay out some of the constants of the overall architecture. 
+
+<p>Vocabulary size $(V)$: 50,257</p>
+<p>Embedding dimension $(D)$: 768</p>
+<p>Number of attention heads $(H)$: 12</p>
+<p>Context Length $(C)$: 1024</p>
+<p>Number of layers: 12</p>
+
+
+## Parameter Breakdown Per layer
+The first two layers are embedding layer wte and wpe. 
+
+### Embedding Layer (wte)
+The model starts with an embedding layer that converts input tokens (words) into continuous representations.
+
+If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.
+
+No. of param = V x D = 50257 * 768 = 38 603 776
+
+### Embedding Layer (wpe)
+Recall the notion of Positional Embedding. Since transformers by itself don't encode the position, this layer embeds the position of input tokens. 
+
+If the context size is C and the embedding dimension is D, this layer has C×D parameters.
+
+No. of param = C x D = 1024 * 768 = 786 432
+
+To verify calculation, the function used to calculate for the entire model can be modified as following. 
+
+```{python eval=false}
+total_params = sum(p.numel() for p in model._modules['wte'].parameters())
+print("number of params in model embedding wte: ", n.numerize(total_params))
+total_params = sum(p.numel() for p in model._modules['wpe'].parameters())
+print("number of params in model embedding wpe: ", n.numerize(total_params))
+```
+```
+number of params in model embedding wte:  38.6M
+number of params in model embedding wpe:  786.43K
+```
