@@ -232,9 +232,23 @@ Lets write a utility to sum all the parameters of the model. I am using the nume
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters())</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in model: "</span>, n.numerize(total_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<pre><code>Total number of parameters: 124.44M</code></pre>
+<pre><code>number of params in model: 124.44M</code></pre>
 <p>Knowing the total number of parameters, lets break it down on a per layer basis. Before we do that, lets lay out some of the constants of the overall architecture.</p>
-<p>Vocabulary size <span class="math inline">\((V)\)</span>: 50,257 Embedding dimension <span class="math inline">\((D)\)</span>: 768 Number of attention heads <span class="math inline">\((H)\)</span>: 12 Context Length <span class="math inline">\((C)\)</span>: 1024 Number of layers: 12</p>
+<p>
+Vocabulary size <span class="math inline">\((V)\)</span>: 50,257
+</p>
+<p>
+Embedding dimension <span class="math inline">\((D)\)</span>: 768
+</p>
+<p>
+Number of attention heads <span class="math inline">\((H)\)</span>: 12
+</p>
+<p>
+Context Length <span class="math inline">\((C)\)</span>: 1024
+</p>
+<p>
+Number of layers <span class="math inline">\((L)\)</span>: 12
+</p>
 <section id="parameter-breakdown-per-layer" class="level2">
 <h2 class="anchored" data-anchor-id="parameter-breakdown-per-layer">Parameter Breakdown Per layer</h2>
 <p>The first two layers are embedding layer wte and wpe.</p>
@@ -242,7 +256,7 @@ Lets write a utility to sum all the parameters of the model. I am using the nume
 <h3 class="anchored" data-anchor-id="embedding-layer-wte">Embedding Layer (wte)</h3>
 <p>The model starts with an embedding layer that converts input tokens (words) into continuous representations.</p>
 <p>If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.</p>
-<p>No.&nbsp;of param = V x D = 50257 * 768 = 38 603 776</p>
+<p>No.&nbsp;of param = V x D = 50257 * 768 = 38 597 376</p>
 </section>
 <section id="embedding-layer-wpe" class="level3">
 <h3 class="anchored" data-anchor-id="embedding-layer-wpe">Embedding Layer (wpe)</h3>
@@ -258,9 +272,67 @@ Lets write a utility to sum all the parameters of the model. I am using the nume
 </div>
 <pre><code>number of params in model embedding wte:  38.6M
 number of params in model embedding wpe:  786.43K</code></pre>
-
-
 </section>
+</section>
+<section id="transformer-layers" class="level2">
+<h2 class="anchored" data-anchor-id="transformer-layers">Transformer layers</h2>
+<p>We have acheived the conversion of text tokens into an embedding. Next step is to apply the self attention operation. GPT2Model defines 12 attention blocks starting with the layer norm.</p>
+<section id="layer-norm-ln_1" class="level3">
+<h3 class="anchored" data-anchor-id="layer-norm-ln_1">Layer Norm (ln_1)</h3>
+<p>Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding (2D) parameters per block.</p>
+<p>No.&nbsp;of param = 2xD = 2 x 768 = 1536</p>
+</section>
+<section id="attention-c_attn" class="level3">
+<h3 class="anchored" data-anchor-id="attention-c_attn">Attention c_attn</h3>
+<pre><code>  - The attention mechanism has \( H \) heads, each with its own set of weights for query, key, and value transformations.
+   - For each head, if the hidden size is \( D \), then each of the query, key, and value transformations has \( D \times D \) parameters.
+   - Additionally, there is a projection layer that combines the outputs of the heads, adding another \( D \times D \) parameters.</code></pre>
+<p>No.&nbsp;of param = [Dx(3xD)+(3xD)] = 1771776</p>
+</section>
+<section id="attention-c_proj" class="level3">
+<h3 class="anchored" data-anchor-id="attention-c_proj">Attention c_proj</h3>
+<p>It is responsible for combining the outputs of the attention heads (in our case, there are 12 heads amongst which 768 dims are equally divided, which gives each head a 64-dim output).</p>
+<p>No.&nbsp;of param = [DxDxD] = 590592 params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>c_attn_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_attn.parameters())</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_proj.parameters())</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_attn_params ))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"sum of c_attn and c_proj"</span>, n.numerize(c_attn_params<span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<pre><code>number of params in c_attn:  1.77M
+number of params in c_proj:  590.59K
+sum of c_attn and c_proj 2.36M</code></pre>
+</section>
+<section id="layer-norm-ln_2" class="level3">
+<h3 class="anchored" data-anchor-id="layer-norm-ln_2">Layer Norm (ln_2)</h3>
+<p>Its similar to Layer Norm ln_1</p>
+</section>
+<section id="feed-forward-neural-network-mlp" class="level3">
+<h3 class="anchored" data-anchor-id="feed-forward-neural-network-mlp">Feed Forward Neural Network mlp</h3>
+<p>c_fc = [Dx(4xD)+(4xD)] = 2362368 c_proj = [(4xD)xD+D] = 2360064 No.&nbsp;of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>c_fc_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_fc.parameters())</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_fc_params ))</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in mlp"</span>, n.numerize(c_fc_params <span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<pre><code>number of params in c_attn:  2.36M
+number of params in c_proj:  2.36M
+number of params in mlp 4.72M</code></pre>
+</section>
+<section id="layer-norm-ln_f" class="level3">
+<h3 class="anchored" data-anchor-id="layer-norm-ln_f">Layer Norm (ln_f)</h3>
+<p>Its similar to Layer Norm ln_1</p>
+</section>
+</section>
+<section id="total-number-of-parameters-in-gpt2" class="level2">
+<h2 class="anchored" data-anchor-id="total-number-of-parameters-in-gpt2">Total number of parameters in GPT2</h2>
+<p>To calculate params in GPT2 we have to add all the parameters we have come across.</p>
+<p>No.&nbsp;of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f = 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536 = 124 439 808</p>
+
+
 </section>
 
 <script async="" defer="" src="https://scripts.simpleanalyticscdn.com/latest.js"></script></main> <!-- /main -->
