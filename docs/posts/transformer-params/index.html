@@ -254,16 +254,30 @@ Number of layers <span class="math inline">\((L)\)</span>: 12
 <p>The first two layers are embedding layer wte and wpe.</p>
 <section id="embedding-layer-wte" class="level3">
 <h3 class="anchored" data-anchor-id="embedding-layer-wte">Embedding Layer (wte)</h3>
-<p>The model starts with an embedding layer that converts input tokens (words) into continuous representations.</p>
-<p>If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.</p>
-<p>No.&nbsp;of param = V x D = 50257 * 768 = 38 597 376</p>
+<p>
+The model starts with an embedding layer that converts input tokens (words) into continuous representations.
+</p>
+<p>
+If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.
+</p>
+<p>
+No.&nbsp;of param = V x D = 50257 * 768 = 38 597 376
+</p>
 </section>
 <section id="embedding-layer-wpe" class="level3">
 <h3 class="anchored" data-anchor-id="embedding-layer-wpe">Embedding Layer (wpe)</h3>
-<p>Recall the notion of Positional Embedding. Since transformers by itself don’t encode the position, this layer embeds the position of input tokens.</p>
-<p>If the context size is C and the embedding dimension is D, this layer has C×D parameters.</p>
-<p>No.&nbsp;of param = C x D = 1024 * 768 = 786 432</p>
-<p>To verify calculation, the function used to calculate for the entire model can be modified as following.</p>
+<p>
+Recall the notion of Positional Embedding. Since transformers by itself don’t encode the position, this layer embeds the position of input tokens.
+</p>
+<p>
+If the context size is C and the embedding dimension is D, this layer has C×D parameters.
+</p>
+<p>
+No.&nbsp;of param = C x D = 1024 * 768 = 786 432
+</p>
+<p>
+To verify calculation, the function used to calculate for the entire model can be modified as following.
+</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'wte'</span>].parameters())</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in model embedding wte: "</span>, n.numerize(total_params))</span>
@@ -279,8 +293,12 @@ number of params in model embedding wpe:  786.43K</code></pre>
 <p>We have acheived the conversion of text tokens into an embedding. Next step is to apply the self attention operation. GPT2Model defines 12 attention blocks starting with the layer norm.</p>
 <section id="layer-norm-ln_1" class="level3">
 <h3 class="anchored" data-anchor-id="layer-norm-ln_1">Layer Norm (ln_1)</h3>
-<p>Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding (2D) parameters per block.</p>
-<p>No.&nbsp;of param = 2xD = 2 x 768 = 1536</p>
+<p>
+Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding (2D) parameters per block.
+</p>
+<p>
+No.&nbsp;of param = 2xD = 2 x 768 = 1536
+</p>
 </section>
 <section id="attention-c_attn" class="level3">
 <h3 class="anchored" data-anchor-id="attention-c_attn">Attention c_attn</h3>
@@ -292,7 +310,12 @@ number of params in model embedding wpe:  786.43K</code></pre>
 <section id="attention-c_proj" class="level3">
 <h3 class="anchored" data-anchor-id="attention-c_proj">Attention c_proj</h3>
 <p>It is responsible for combining the outputs of the attention heads (in our case, there are 12 heads amongst which 768 dims are equally divided, which gives each head a 64-dim output).</p>
-<p>No.&nbsp;of param = [DxDxD] = 590592 params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368</p>
+<p>
+No.&nbsp;of param = [DxDxD] = 590592
+</p>
+<p>
+params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368
+</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>c_attn_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_attn.parameters())</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_proj.parameters())</span>
@@ -310,7 +333,15 @@ sum of c_attn and c_proj 2.36M</code></pre>
 </section>
 <section id="feed-forward-neural-network-mlp" class="level3">
 <h3 class="anchored" data-anchor-id="feed-forward-neural-network-mlp">Feed Forward Neural Network mlp</h3>
-<p>c_fc = [Dx(4xD)+(4xD)] = 2362368 c_proj = [(4xD)xD+D] = 2360064 No.&nbsp;of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432</p>
+<p>
+c_fc = [Dx(4xD)+(4xD)] = 2362368
+</p>
+<p>
+c_proj = [(4xD)xD+D] = 2360064
+</p>
+<p>
+No.&nbsp;of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432
+</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>c_fc_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_fc.parameters())</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
@@ -330,7 +361,15 @@ number of params in mlp 4.72M</code></pre>
 <section id="total-number-of-parameters-in-gpt2" class="level2">
 <h2 class="anchored" data-anchor-id="total-number-of-parameters-in-gpt2">Total number of parameters in GPT2</h2>
 <p>To calculate params in GPT2 we have to add all the parameters we have come across.</p>
-<p>No.&nbsp;of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f = 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536 = 124 439 808</p>
+<p>
+No.&nbsp;of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f
+</p>
+<p>
+= 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536
+</p>
+<p>
+= 124 439 808
+</p>
 
 
 </section>

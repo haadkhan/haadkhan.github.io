@@ -74,20 +74,20 @@ Knowing the total number of parameters, lets break it down on a per layer basis.
 The first two layers are embedding layer wte and wpe. 
 
 ### Embedding Layer (wte)
-The model starts with an embedding layer that converts input tokens (words) into continuous representations.
+<p>The model starts with an embedding layer that converts input tokens (words) into continuous representations.</p>
 
-If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.
+<p>If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.</p>
 
-No. of param = V x D = 50257 * 768 = 38 597 376
+<p>No. of param = V x D = 50257 * 768 = 38 597 376</p>
 
 ### Embedding Layer (wpe)
-Recall the notion of Positional Embedding. Since transformers by itself don't encode the position, this layer embeds the position of input tokens. 
+<p>Recall the notion of Positional Embedding. Since transformers by itself don't encode the position, this layer embeds the position of input tokens. </p>
 
-If the context size is C and the embedding dimension is D, this layer has C×D parameters.
+<p>If the context size is C and the embedding dimension is D, this layer has C×D parameters.</p>
 
-No. of param = C x D = 1024 * 768 = 786 432
+<p>No. of param = C x D = 1024 * 768 = 786 432</p>
 
-To verify calculation, the function used to calculate for the entire model can be modified as following. 
+<p>To verify calculation, the function used to calculate for the entire model can be modified as following. </p>
 
 ```{python eval=false}
 total_params = sum(p.numel() for p in model._modules['wte'].parameters())
@@ -104,9 +104,9 @@ number of params in model embedding wpe:  786.43K
 We have acheived the conversion of text tokens into an embedding. Next step is to apply the self attention operation. GPT2Model defines 12 attention blocks starting with the layer norm. 
 
 ### Layer Norm (ln_1)
-Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding \(2D\) parameters per block.
+<p>Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding \(2D\) parameters per block.</p>
 
-No. of param = 2xD = 2 x 768 = 1536
+<p>No. of param = 2xD = 2 x 768 = 1536</p>
 
 ### Attention c_attn
       - The attention mechanism has \( H \) heads, each with its own set of weights for query, key, and value transformations.
@@ -118,8 +118,8 @@ No. of param = [Dx(3xD)+(3xD)] = 1771776
 ### Attention c_proj
 It is responsible for combining the outputs of the attention heads (in our case, there are 12 heads amongst which 768 dims are equally divided, which gives each head a 64-dim output).
 
-No. of param = [DxDxD] = 590592
-params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368
+<p>No. of param = [DxDxD] = 590592</p>
+<p>params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368</p>
 
 ```{python eval=false}
 c_attn_params = sum(p.numel() for p in model._modules['h'][0].attn.c_attn.parameters())
@@ -138,9 +138,9 @@ sum of c_attn and c_proj 2.36M
 Its similar to Layer Norm ln_1
 
 ### Feed Forward Neural Network mlp
-c_fc = [Dx(4xD)+(4xD)] = 2362368
-c_proj = [(4xD)xD+D] = 2360064
-No. of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432
+<p>c_fc = [Dx(4xD)+(4xD)] = 2362368</p>
+<p>c_proj = [(4xD)xD+D] = 2360064</p>
+<p>No. of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432</p>
 ```{python eval=false}
 c_fc_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_fc.parameters())
 c_proj_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_proj.parameters())
@@ -161,6 +161,6 @@ Its similar to Layer Norm ln_1
 To calculate params in GPT2 we have to add all the parameters we have come across.
 
 
-No. of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f
-             = 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536
-             = 124 439 808
+<p>No. of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f</p>
+<p>             = 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536</p>
+<p>             = 124 439 808</p>
