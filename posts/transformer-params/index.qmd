@@ -61,31 +61,32 @@ print("number of params in model: ", n.numerize(total_params))
 ```
 number of params in model: 124.44M
 ```
-Knowing the total number of parameters, lets break it down on a per layer basis. Before we do that, lets lay out some of the constants of the overall architecture. 
+<p>This is the total number of parameters. To understand how these parameters are distributed lets layout all the pieces of transformer, find out the number of parameters for the individual piece. At the end, for sanity check, we can add the number of parameters across all components to ensure we get the number above.</p>
 
+<p>It's helpful to define constants so later, we can just plug in the values.</p>
 <p>Vocabulary size $(V)$: 50,257</p>
 <p>Embedding dimension $(D)$: 768</p>
 <p>Number of attention heads $(H)$: 12</p>
-<p>Context Length $(C)$: 1024</p>
+<p>Context Length $(C)$: 1,024</p>
 <p>Number of layers $(L)$: 12</p>
 
 
 ## Parameter Breakdown Per layer
-The first two layers are embedding layer wte and wpe. 
+The first two layers are embedding layer *wte* and *wpe*. 
 
 ### Embedding Layer (wte)
 <p>The model starts with an embedding layer that converts input tokens (words) into continuous representations.</p>
 
 <p>If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.</p>
 
-<p>No. of param = V x D = 50257 * 768 = 38 597 376</p>
+<p>No. of param = V x D = 50,257 x 768 = 38,597,376</p>
 
 ### Embedding Layer (wpe)
 <p>Recall the notion of Positional Embedding. Since transformers by itself don't encode the position, this layer embeds the position of input tokens. </p>
 
 <p>If the context size is C and the embedding dimension is D, this layer has C×D parameters.</p>
 
-<p>No. of param = C x D = 1024 * 768 = 786 432</p>
+<p>No. of param = C x D = 1,024x768 = 786,432</p>
 
 <p>To verify calculation, the function used to calculate for the entire model can be modified as following. </p>
 
@@ -101,25 +102,22 @@ number of params in model embedding wpe:  786.43K
 ```
 
 ## Transformer layers
-We have acheived the conversion of text tokens into an embedding. Next step is to apply the self attention operation. GPT2Model defines 12 attention blocks starting with the layer norm. 
+We have acheived the conversion of text tokens into an embedding. Next step is to apply the self-attention operation. GPT2Model defines 12 attention blocks starting with the layer norm. 
 
 ### Layer Norm (ln_1)
 <p>Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding \(2D\) parameters per block.</p>
 
-<p>No. of param = 2xD = 2 x 768 = 1536</p>
+<p>No. of param = 2xD = 2x768 = 1,536</p>
 
 ### Attention c_attn
-      - The attention mechanism has \( H \) heads, each with its own set of weights for query, key, and value transformations.
-       - For each head, if the hidden size is \( D \), then each of the query, key, and value transformations has \( D \times D \) parameters.
-       - Additionally, there is a projection layer that combines the outputs of the heads, adding another \( D \times D \) parameters.
+<p>The attention mechanism has \( H \) heads, each with its own set of weights for query, key, and value transformations. While each head has a dimension of D/h since there are h heads, it can be simplified to D. Since there are three matrices query, key, value and a bias vector the numbers of parameters in c_attn block could be represented by the expression [Dx(3D)+3D]</p>
 
-No. of param = [Dx(3xD)+(3xD)] = 1771776
+### c_proj
+<p>c_proj combines the output of multiple heads. Its a size of DxD matrix and an additional bias vector D.</p>
 
-### Attention c_proj
-It is responsible for combining the outputs of the attention heads (in our case, there are 12 heads amongst which 768 dims are equally divided, which gives each head a 64-dim output).
-
-<p>No. of param = [DxDxD] = 590592</p>
-<p>params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368</p>
+<p>No. of param in c_attn = [Dx(3D)+(3D)] = 1,771,776</br>
+No. of param in c_proj = [DxD+D] = 590,592</br>
+params = c_attn + c_proj = [Dx(3D)+(3D)] + [DxD+D] = 2,362,368</p>
 
 ```{python eval=false}
 c_attn_params = sum(p.numel() for p in model._modules['h'][0].attn.c_attn.parameters())
@@ -133,14 +131,19 @@ number of params in c_attn:  1.77M
 number of params in c_proj:  590.59K
 sum of c_attn and c_proj 2.36M
 ```
+<p>Going through the definition of attn in the architecture you will come across attn_dropout and resid_dropout. I skip their description since they do not add any additional parameters.</p>
 
 ### Layer Norm (ln_2)
-Its similar to Layer Norm ln_1
+Its similar to Layer Norm ln_1.
 
 ### Feed Forward Neural Network mlp
-<p>c_fc = [Dx(4xD)+(4xD)] = 2362368</p>
-<p>c_proj = [(4xD)xD+D] = 2360064</p>
-<p>No. of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432</p>
+<p>The feed-forward neural network has two linear transformations with a non-linear activation in between. c_fc is responsible for projecting the output of the Attention layer into a hidden space 4xD.
+The c_fc is of size Dx4D plus a bias vector of size 4D. </br>
+Next, c_proj is responsible for projecting the output of the first feed-forward layer back into the embedding space. Therefore c_proj is equal to 4DxD plus a bias vector of size D. </p>
+
+<p>c_fc = [Dx(4xD)+(4xD)] = 2,362,368</br>
+c_proj = [(4xD)xD+D] = 2,360,064</br>
+No. of param = [Dx(4D)+(4D)] + [(4D)xD+D] = 4,722,432</p>
 ```{python eval=false}
 c_fc_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_fc.parameters())
 c_proj_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_proj.parameters())
@@ -153,6 +156,7 @@ number of params in c_attn:  2.36M
 number of params in c_proj:  2.36M
 number of params in mlp 4.72M
 ```
+Going through the definition of MLP in the architecture you will come across act and dropoff. I skip their description since they do not add any additional parameters.
 
 ### Layer Norm (ln_f)
 Its similar to Layer Norm ln_1
@@ -160,7 +164,8 @@ Its similar to Layer Norm ln_1
 ## Total number of parameters in GPT2
 To calculate params in GPT2 we have to add all the parameters we have come across.
 
+$$No. of param = w_{\text{te}} + c_{\text{te}} + L \times (ln_1 + \text{attn} + ln_2 + \text{mlp}) + ln_f$$ 
+$$= 38,597,376 + 786,432 + 12 \times (1,536 + 2,362,368 + 1,536 + 4,722,432) + 1,536$$
+$$ = 124,439,808$$
 
-<p>No. of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f</p>
-<p>             = 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536</p>
-<p>             = 124 439 808</p>
+So the final calculation is the same as the first operation we did to determine number of parameters. Using the process we can get a ballpark estimate of number of parameter's for model of any size. 

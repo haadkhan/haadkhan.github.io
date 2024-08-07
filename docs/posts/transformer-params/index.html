@@ -233,7 +233,12 @@ Lets write a utility to sum all the parameters of the model. I am using the nume
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in model: "</span>, n.numerize(total_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <pre><code>number of params in model: 124.44M</code></pre>
-<p>Knowing the total number of parameters, lets break it down on a per layer basis. Before we do that, lets lay out some of the constants of the overall architecture.</p>
+<p>
+This is the total number of parameters. To understand how these parameters are distributed lets layout all the pieces of transformer, find out the number of parameters for the individual piece. At the end, for sanity check, we can add the number of parameters across all components to ensure we get the number above.
+</p>
+<p>
+It’s helpful to define constants so later, we can just plug in the values.
+</p>
 <p>
 Vocabulary size <span class="math inline">\((V)\)</span>: 50,257
 </p>
@@ -244,14 +249,14 @@ Embedding dimension <span class="math inline">\((D)\)</span>: 768
 Number of attention heads <span class="math inline">\((H)\)</span>: 12
 </p>
 <p>
-Context Length <span class="math inline">\((C)\)</span>: 1024
+Context Length <span class="math inline">\((C)\)</span>: 1,024
 </p>
 <p>
 Number of layers <span class="math inline">\((L)\)</span>: 12
 </p>
 <section id="parameter-breakdown-per-layer" class="level2">
 <h2 class="anchored" data-anchor-id="parameter-breakdown-per-layer">Parameter Breakdown Per layer</h2>
-<p>The first two layers are embedding layer wte and wpe.</p>
+<p>The first two layers are embedding layer <em>wte</em> and <em>wpe</em>.</p>
 <section id="embedding-layer-wte" class="level3">
 <h3 class="anchored" data-anchor-id="embedding-layer-wte">Embedding Layer (wte)</h3>
 <p>
@@ -261,7 +266,7 @@ The model starts with an embedding layer that converts input tokens (words) into
 If the vocabulary size is V and the embedding dimension is D, this layer has V×D parameters.
 </p>
 <p>
-No.&nbsp;of param = V x D = 50257 * 768 = 38 597 376
+No.&nbsp;of param = V x D = 50,257 x 768 = 38,597,376
 </p>
 </section>
 <section id="embedding-layer-wpe" class="level3">
@@ -273,7 +278,7 @@ Recall the notion of Positional Embedding. Since transformers by itself don’t 
 If the context size is C and the embedding dimension is D, this layer has C×D parameters.
 </p>
 <p>
-No.&nbsp;of param = C x D = 1024 * 768 = 786 432
+No.&nbsp;of param = C x D = 1,024x768 = 786,432
 </p>
 <p>
 To verify calculation, the function used to calculate for the entire model can be modified as following.
@@ -290,68 +295,67 @@ number of params in model embedding wpe:  786.43K</code></pre>
 </section>
 <section id="transformer-layers" class="level2">
 <h2 class="anchored" data-anchor-id="transformer-layers">Transformer layers</h2>
-<p>We have acheived the conversion of text tokens into an embedding. Next step is to apply the self attention operation. GPT2Model defines 12 attention blocks starting with the layer norm.</p>
+<p>We have acheived the conversion of text tokens into an embedding. Next step is to apply the self-attention operation. GPT2Model defines 12 attention blocks starting with the layer norm.</p>
 <section id="layer-norm-ln_1" class="level3">
 <h3 class="anchored" data-anchor-id="layer-norm-ln_1">Layer Norm (ln_1)</h3>
 <p>
 Each transformer block starts with a layer normalization steps that have parameters for scaling and shifting the normalized output, each adding (2D) parameters per block.
 </p>
 <p>
-No.&nbsp;of param = 2xD = 2 x 768 = 1536
+No.&nbsp;of param = 2xD = 2x768 = 1,536
 </p>
 </section>
 <section id="attention-c_attn" class="level3">
 <h3 class="anchored" data-anchor-id="attention-c_attn">Attention c_attn</h3>
-<pre><code>  - The attention mechanism has \( H \) heads, each with its own set of weights for query, key, and value transformations.
-   - For each head, if the hidden size is \( D \), then each of the query, key, and value transformations has \( D \times D \) parameters.
-   - Additionally, there is a projection layer that combines the outputs of the heads, adding another \( D \times D \) parameters.</code></pre>
-<p>No.&nbsp;of param = [Dx(3xD)+(3xD)] = 1771776</p>
-</section>
-<section id="attention-c_proj" class="level3">
-<h3 class="anchored" data-anchor-id="attention-c_proj">Attention c_proj</h3>
-<p>It is responsible for combining the outputs of the attention heads (in our case, there are 12 heads amongst which 768 dims are equally divided, which gives each head a 64-dim output).</p>
 <p>
-No.&nbsp;of param = [DxDxD] = 590592
+The attention mechanism has ( H ) heads, each with its own set of weights for query, key, and value transformations. While each head has a dimension of D/h since there are h heads, it can be simplified to D. Since there are three matrices query, key, value and a bias vector the numbers of parameters in c_attn block could be represented by the expression [Dx(3D)+3D]
+</p>
+</section>
+<section id="c_proj" class="level3">
+<h3 class="anchored" data-anchor-id="c_proj">c_proj</h3>
+<p>
+c_proj combines the output of multiple heads. Its a size of DxD matrix and an additional bias vector D.
 </p>
 <p>
-params = c_attn + c_proj = [Dx(3xD)+(3xD)] + [DxDxD] = 2362368
+No.&nbsp;of param in c_attn = [Dx(3D)+(3D)] = 1,771,776<br> No.&nbsp;of param in c_proj = [DxD+D] = 590,592<br> params = c_attn + c_proj = [Dx(3D)+(3D)] + [DxD+D] = 2,362,368
 </p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>c_attn_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_attn.parameters())</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_proj.parameters())</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_attn_params ))</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"sum of c_attn and c_proj"</span>, n.numerize(c_attn_params<span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>c_attn_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_attn.parameters())</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_proj.parameters())</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_attn_params ))</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"sum of c_attn and c_proj"</span>, n.numerize(c_attn_params<span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <pre><code>number of params in c_attn:  1.77M
 number of params in c_proj:  590.59K
 sum of c_attn and c_proj 2.36M</code></pre>
+<p>
+Going through the definition of attn in the architecture you will come across attn_dropout and resid_dropout. I skip their description since they do not add any additional parameters.
+</p>
 </section>
 <section id="layer-norm-ln_2" class="level3">
 <h3 class="anchored" data-anchor-id="layer-norm-ln_2">Layer Norm (ln_2)</h3>
-<p>Its similar to Layer Norm ln_1</p>
+<p>Its similar to Layer Norm ln_1.</p>
 </section>
 <section id="feed-forward-neural-network-mlp" class="level3">
 <h3 class="anchored" data-anchor-id="feed-forward-neural-network-mlp">Feed Forward Neural Network mlp</h3>
 <p>
-c_fc = [Dx(4xD)+(4xD)] = 2362368
+The feed-forward neural network has two linear transformations with a non-linear activation in between. c_fc is responsible for projecting the output of the Attention layer into a hidden space 4xD. The c_fc is of size Dx4D plus a bias vector of size 4D. <br> Next, c_proj is responsible for projecting the output of the first feed-forward layer back into the embedding space. Therefore c_proj is equal to 4DxD plus a bias vector of size D.
 </p>
 <p>
-c_proj = [(4xD)xD+D] = 2360064
-</p>
-<p>
-No.&nbsp;of param = [Dx(4xD)+(4xD)] + [(4xD)xD+D] = 4722432
+c_fc = [Dx(4xD)+(4xD)] = 2,362,368<br> c_proj = [(4xD)xD+D] = 2,360,064<br> No.&nbsp;of param = [Dx(4D)+(4D)] + [(4D)xD+D] = 4,722,432
 </p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>c_fc_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_fc.parameters())</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_fc_params ))</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in mlp"</span>, n.numerize(c_fc_params <span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>c_fc_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_fc.parameters())</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_fc_params ))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in mlp"</span>, n.numerize(c_fc_params <span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <pre><code>number of params in c_attn:  2.36M
 number of params in c_proj:  2.36M
 number of params in mlp 4.72M</code></pre>
+<p>Going through the definition of MLP in the architecture you will come across act and dropoff. I skip their description since they do not add any additional parameters.</p>
 </section>
 <section id="layer-norm-ln_f" class="level3">
 <h3 class="anchored" data-anchor-id="layer-norm-ln_f">Layer Norm (ln_f)</h3>
@@ -361,15 +365,8 @@ number of params in mlp 4.72M</code></pre>
 <section id="total-number-of-parameters-in-gpt2" class="level2">
 <h2 class="anchored" data-anchor-id="total-number-of-parameters-in-gpt2">Total number of parameters in GPT2</h2>
 <p>To calculate params in GPT2 we have to add all the parameters we have come across.</p>
-<p>
-No.&nbsp;of param = wte + cte + Lx(ln_1 + attn + ln_2 + mlp) + ln_f
-</p>
-<p>
-= 38597376 + 786432 + 12x(1536 + 2362368 + 1536 + 4722432) + 1536
-</p>
-<p>
-= 124 439 808
-</p>
+<p><span class="math display">\[No. of param = w_{\text{te}} + c_{\text{te}} + L \times (ln_1 + \text{attn} + ln_2 + \text{mlp}) + ln_f\]</span> <span class="math display">\[= 38,597,376 + 786,432 + 12 \times (1,536 + 2,362,368 + 1,536 + 4,722,432) + 1,536\]</span> <span class="math display">\[ = 124,439,808\]</span></p>
+<p>So the final calculation is the same as the first operation we did to determine number of parameters. Using the process we can get a ballpark estimate of number of parameter’s for model of any size.</p>
 
 
 </section>
