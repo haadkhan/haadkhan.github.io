@@ -149,12 +149,12 @@ c_fc_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_fc.parameters(
 c_proj_params = sum(p.numel() for p in model._modules['h'][0].mlp.c_proj.parameters())
 print("number of params in c_attn: ", n.numerize(c_fc_params ))
 print("number of params in c_proj: ", n.numerize(c_proj_params ))
-print("number of params in mlp", n.numerize(c_fc_params +c_proj_params))
+print("number of params in mlp: ", n.numerize(c_fc_params +c_proj_params))
 ```
 ```
 number of params in c_attn:  2.36M
 number of params in c_proj:  2.36M
-number of params in mlp 4.72M
+number of params in mlp: 4.72M
 ```
 Going through the definition of MLP in the architecture you will come across act and dropoff. I skip their description since they do not add any additional parameters.
 

@@ -350,11 +350,11 @@ c_fc = [Dx(4xD)+(4xD)] = 2,362,368<br> c_proj = [(4xD)xD+D] = 2,360,064<br> No.&
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_fc_params ))</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_proj: "</span>, n.numerize(c_proj_params ))</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in mlp"</span>, n.numerize(c_fc_params <span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in mlp: "</span>, n.numerize(c_fc_params <span class="op">+</span>c_proj_params))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <pre><code>number of params in c_attn:  2.36M
 number of params in c_proj:  2.36M
-number of params in mlp 4.72M</code></pre>
+number of params in mlp: 4.72M</code></pre>
 <p>Going through the definition of MLP in the architecture you will come across act and dropoff. I skip their description since they do not add any additional parameters.</p>
 </section>
 <section id="layer-norm-ln_f" class="level3">
