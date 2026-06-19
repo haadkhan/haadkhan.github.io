@@ -1,17 +1,94 @@
 [
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "04_chemberta_finetune.html",
+    "href": "04_chemberta_finetune.html",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
     "section": "",
-    "text": "I am Haad, an applied scientist working at the intersection of LLM and Healthcare. Outside of work he can be found on a sand court playing 🏐 or pickleball 🏓\nThe name of the blog “byte sized ML” is inspired from byte sized engineering https://www.bytesizedengineering.com/ ## Education\nUniversity of Michigan | Ann Arbor MI MS in NLP & Information Retreival | 2014 - 2016\nGIK University B.Eng | Aug 2010 - May 2014"
+    "text": "Key improvements over notebook 03: 1. Fine-tune ChemBERTa — both encoder and MLP head learn together 2. wMSE training loss — optimize the same metric the leaderboard uses\nArchitecture:"
   },
   {
-    "objectID": "about.html#experience",
-    "href": "about.html#experience",
-    "title": "About",
-    "section": "Experience",
-    "text": "Experience\nOracle | Sr. Applied Scientist | Mar 2018 - Nov 2023 Cerebri AI | Data Scientist | Feb 2016 - Feb 2018"
+    "objectID": "04_chemberta_finetune.html#imports",
+    "href": "04_chemberta_finetune.html#imports",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "1. Imports",
+    "text": "1. Imports\n\nimport numpy as np\nimport pandas as pd\nimport torch\nimport torch.nn as nn\nfrom torch.utils.data import Dataset, DataLoader\nfrom transformers import AutoTokenizer, AutoModel\nfrom pathlib import Path\nimport sys\nimport os\nsys.path.append(os.path.abspath(\"src\"))\nfrom src.vcpi_prediction_contest import (\n    load_test_compounds,\n    load_gene_filter,\n    load_weights_matrix,\n    score_compounds,\n    aggregate_leaderboards,\n)\n\nDATA   = Path(\"/Users/haadkhan/Code/vcpi-prediction-contest-2026/data\")\ndevice = torch.device(\"mps\" if torch.backends.mps.is_available() else \"cpu\")\nprint(f\"Using device: {device}\")\n\nUsing device: mps\n\n\n\ntorch.__version__\n\n'2.12.0'"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#load-data",
+    "href": "04_chemberta_finetune.html#load-data",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "2. Load Data",
+    "text": "2. Load Data\n\nDATA = Path(\"\")\nexpression = pd.read_parquet(DATA / \"train_expression.parquet\")\nprint(f\"Expression: {expression.shape}\")\n\nchem = pd.concat([\n    pd.read_csv(\"compounds-tvc-bhr-009-2026-05-30.csv\"),\n    pd.read_csv(\"compounds-tvc-kdl-010-2026-05-30.csv\"),\n    pd.read_csv(\"compounds-tvc-qnu-012-2026-05-30.csv\"),\n], ignore_index=True).drop_duplicates(subset=[\"user_compound_id\"]).reset_index(drop=True)\n\ntest_compounds = load_test_compounds()\ngene_filter    = load_gene_filter()\nprint(f\"Chemistry: {chem.shape}\")\nprint(f\"Test compounds: {len(test_compounds)}, Scored genes: {len(gene_filter)}\")\n\nExpression: (182332845, 3)\n\n\n\n2026-05-30 16:44:24.237 | INFO     | vcpi_prediction_contest.data:load_test_compounds:222 - Loaded 1064 test compounds from bundled test_compounds.csv\n\n2026-05-30 16:44:24.255 | INFO     | vcpi_prediction_contest.data:load_gene_filter:156 - Loaded gene_filter from /Users/haadkhan/Code/vcpi-prediction-contest-2026/src/vcpi_prediction_contest/data_files/gene_filter.csv (12995 genes)\n\n\n\n\nChemistry: (14031, 13)\nTest compounds: 1064, Scored genes: 12995"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#load-canonical-weights",
+    "href": "04_chemberta_finetune.html#load-canonical-weights",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "3. Load Canonical Weights",
+    "text": "3. Load Canonical Weights\nPre-compute per-compound weight vectors for wMSE training loss.\n\nprint(\"Loading canonical weights...\")\n#expression = pd.read_parquet(\"train_expression.parquet\")\n\nW = load_weights_matrix()  # (12995 genes x 14031 compounds)\nprint(f\"Weight matrix: {W.shape}\")\n\n# Align to gene_filter order\nW = W.reindex(index=gene_filter)\nn_genes = len(gene_filter)\nuniform_weight = np.full(n_genes, 1.0 / n_genes, dtype=np.float32)\n\nLoading canonical weights...\n\n\n\n2026-05-30 16:44:24.523 | INFO     | vcpi_prediction_contest.data:fetch_weights:375 - Using cached weights at /Users/haadkhan/.cache/vcpi-prediction-contest/weights-86ca750389838eb5.parquet\n\n2026-05-30 16:44:26.566 | INFO     | vcpi_prediction_contest.data:load_weights_matrix:444 - Loaded weight matrix from /Users/haadkhan/.cache/vcpi-prediction-contest/weights-86ca750389838eb5.parquet (shape=(12995, 14031), dtype=float16)\n\n\n\n\nWeight matrix: (12995, 14031)"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#build-labels-y-and-align-chemistry",
+    "href": "04_chemberta_finetune.html#build-labels-y-and-align-chemistry",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "4. Build Labels (y) and Align Chemistry",
+    "text": "4. Build Labels (y) and Align Chemistry\n\nprint(\"Pivoting expression...\")\nexpr_wide = expression.pivot_table(\n    index=\"compound\", columns=\"gene_id\",\n    values=\"expression\", aggfunc=\"mean\"\n).reindex(columns=gene_filter)\n\n\n\nexpr_wide = (\n    expression.loc[expression[\"gene_id\"].isin(gene_filter)]\n    .groupby([\"compound\", \"gene_id\"], sort=False)[\"expression\"]\n    .mean()\n    .unstack(\"gene_id\")\n    .reindex(columns=gene_filter)\n)\n\n\ntrain_compound_ids = expression[\"compound\"].unique()\nchem_train = chem[chem[\"user_compound_id\"].isin(train_compound_ids)].reset_index(drop=True)\n\ncompound_ids = chem_train[\"user_compound_id\"].values\nexpr_wide    = expr_wide.reindex(compound_ids)\nvalid_mask   = ~expr_wide.isna().any(axis=1)\ncompound_ids = compound_ids[valid_mask]\nsmiles_all   = chem_train[\"smiles\"].values[valid_mask]\ny_all        = expr_wide[valid_mask].values.astype(np.float32)\n\n# Pre-compute weight vector for each compound\nprint(\"Pre-computing per-compound weights...\")\nw_all = np.stack([\n    W[cid].values.astype(np.float32) if cid in W.columns else uniform_weight\n    for cid in compound_ids\n])\n\nprint(f\"y: {y_all.shape}, weights: {w_all.shape}\")\n\nPre-computing per-compound weights...\ny: (14031, 12995), weights: (14031, 12995)"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#train-val-split",
+    "href": "04_chemberta_finetune.html#train-val-split",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "5. Train / Val Split",
+    "text": "5. Train / Val Split\n\nrng       = np.random.default_rng(42)\nn         = len(compound_ids)\nval_idx   = rng.choice(n, size=200, replace=False)\ntrain_idx = np.setdiff1d(np.arange(n), val_idx)\n\nsmiles_train, y_train, w_train = smiles_all[train_idx], y_all[train_idx], w_all[train_idx]\nsmiles_val,   y_val,   w_val   = smiles_all[val_idx],   y_all[val_idx],   w_all[val_idx]\nval_compound_ids                = compound_ids[val_idx]\n\nprint(f\"Train: {len(smiles_train)}, Val: {len(smiles_val)}\")\n\nTrain: 13831, Val: 200"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#dataset-dataloader",
+    "href": "04_chemberta_finetune.html#dataset-dataloader",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "6. Dataset + DataLoader",
+    "text": "6. Dataset + DataLoader\nEach sample returns: SMILES string, expression vector, weight vector.\n\nclass DrugDataset(Dataset):\n    def __init__(self, smiles, y, w):\n        self.smiles = smiles\n        self.y = torch.tensor(y, dtype=torch.float32)\n        self.w = torch.tensor(w, dtype=torch.float32)\n\n    def __len__(self): return len(self.smiles)\n\n    def __getitem__(self, idx):\n        return self.smiles[idx], self.y[idx], self.w[idx]\n\nBATCH_SIZE   = 16  # smaller batch for fine-tuning\ntrain_loader = DataLoader(DrugDataset(smiles_train, y_train, w_train),\n                          batch_size=BATCH_SIZE, shuffle=True)\nval_loader   = DataLoader(DrugDataset(smiles_val, y_val, w_val),\n                          batch_size=BATCH_SIZE, shuffle=False)\nprint(f\"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}\")\n\nTrain batches: 865, Val batches: 13\n\n\n\nimport torch\ntorch.__version__\n\n'2.5.1'"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#model-chemberta-mlp-head-end-to-end",
+    "href": "04_chemberta_finetune.html#model-chemberta-mlp-head-end-to-end",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "7. Model — ChemBERTa + MLP Head (end-to-end)",
+    "text": "7. Model — ChemBERTa + MLP Head (end-to-end)\n\nCHEMBERTA_MODEL = \"seyonec/ChemBERTa-zinc-base-v1\"\n\ntokenizer = AutoTokenizer.from_pretrained(CHEMBERTA_MODEL)\n\nclass ChemBERTaExpressionModel(nn.Module):\n    def __init__(self, output_dim):\n        super().__init__()\n        self.encoder = AutoModel.from_pretrained(CHEMBERTA_MODEL)\n        hidden = self.encoder.config.hidden_size  # 384\n        self.head = nn.Sequential(\n            nn.Linear(hidden, 1024),\n            nn.BatchNorm1d(1024),\n            nn.ReLU(),\n            nn.Dropout(0.3),\n            nn.Linear(1024, 512),\n            nn.BatchNorm1d(512),\n            nn.ReLU(),\n            nn.Dropout(0.3),\n            nn.Linear(512, output_dim),\n            nn.ReLU(),\n        )\n\n    def forward(self, input_ids, attention_mask):\n        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)\n        # Mean pool token embeddings → molecule embedding\n        emb = (out.last_hidden_state * attention_mask.unsqueeze(-1)).sum(1) \\\n              / attention_mask.sum(1, keepdim=True)\n        return self.head(emb)\n\nmodel = ChemBERTaExpressionModel(output_dim=len(gene_filter)).to(device)\nencoder_params = sum(p.numel() for p in model.encoder.parameters())\nhead_params    = sum(p.numel() for p in model.head.parameters())\nprint(f\"Encoder params: {encoder_params:,}\")\nprint(f\"Head params:    {head_params:,}\")\nprint(f\"Total params:   {encoder_params + head_params:,}\")\n\nWarning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\npython3(55856) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.\n\n\n\n\n\n\n[transformers] RobertaModel LOAD REPORT from: seyonec/ChemBERTa-zinc-base-v1\n\nKey                       | Status     |  | \n\n--------------------------+------------+--+-\n\nlm_head.decoder.weight    | UNEXPECTED |  | \n\nlm_head.layer_norm.bias   | UNEXPECTED |  | \n\nlm_head.decoder.bias      | UNEXPECTED |  | \n\nlm_head.dense.bias        | UNEXPECTED |  | \n\nlm_head.layer_norm.weight | UNEXPECTED |  | \n\nlm_head.bias              | UNEXPECTED |  | \n\nlm_head.dense.weight      | UNEXPECTED |  | \n\n\n\nNotes:\n\n- UNEXPECTED:   can be ignored when loading from different task/architecture; not ok if you expect identical arch.\n\n\n\n\nEncoder params: 44,103,936\nHead params:    7,981,763\nTotal params:   52,085,699"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#wmse-loss-function",
+    "href": "04_chemberta_finetune.html#wmse-loss-function",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "8. wMSE Loss Function",
+    "text": "8. wMSE Loss Function\n\ndef wmse_loss(pred, truth, weights):\n    \"\"\"\n    pred, truth, weights: (batch_size, n_genes)\n    Returns scalar — mean wMSE over the batch.\n    \"\"\"\n    sq_err = (pred - truth) ** 2          # (batch, genes)\n    per_compound = (sq_err * weights).sum(dim=1)  # (batch,)\n    return per_compound.mean()"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#training-loop",
+    "href": "04_chemberta_finetune.html#training-loop",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "9. Training Loop",
+    "text": "9. Training Loop\nTwo learning rates: small for ChemBERTa (fine-tuning), larger for MLP head.\n\noptimizer = torch.optim.AdamW([\n    {\"params\": model.encoder.parameters(), \"lr\": 1e-5},  # small LR for pretrained\n    {\"params\": model.head.parameters(),    \"lr\": 1e-3},  # larger LR for new head\n])\nscheduler     = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)\nEPOCHS        = 20  # fine-tuning needs fewer epochs\nbest_val_loss = float(\"inf\")\n\nfor epoch in range(EPOCHS):\n    # --- Train ---\n    model.train()\n    train_loss = 0\n    for smiles_batch, y_batch, w_batch in train_loader:\n        tokens = tokenizer(\n            list(smiles_batch), padding=True, truncation=True,\n            max_length=128, return_tensors=\"pt\"\n        ).to(device)\n        y_batch = y_batch.to(device)\n        w_batch = w_batch.to(device)\n\n        optimizer.zero_grad()\n        pred = model(tokens[\"input_ids\"], tokens[\"attention_mask\"])\n        loss = wmse_loss(pred, y_batch, w_batch)\n        loss.backward()\n        optimizer.step()\n        train_loss += loss.item()\n    train_loss /= len(train_loader)\n\n    # --- Validate ---\n    model.eval()\n    val_loss = 0\n    with torch.no_grad():\n        for smiles_batch, y_batch, w_batch in val_loader:\n            tokens = tokenizer(\n                list(smiles_batch), padding=True, truncation=True,\n                max_length=128, return_tensors=\"pt\"\n            ).to(device)\n            y_batch = y_batch.to(device)\n            w_batch = w_batch.to(device)\n            pred     = model(tokens[\"input_ids\"], tokens[\"attention_mask\"])\n            val_loss += wmse_loss(pred, y_batch, w_batch).item()\n    val_loss /= len(val_loader)\n\n    scheduler.step(val_loss)\n\n    if val_loss &lt; best_val_loss:\n        best_val_loss = val_loss\n        torch.save(model.state_dict(), DATA / \"best_finetune_model.pt\")\n\n    print(f\"Epoch {epoch+1:02d}/{EPOCHS} | train_wmse: {train_loss:.4f} | val_wmse: {val_loss:.4f}\")\n\nprint(f\"\\nBest val wMSE: {best_val_loss:.4f}\")"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#score-with-canonical-weights",
+    "href": "04_chemberta_finetune.html#score-with-canonical-weights",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "10. Score with Canonical Weights",
+    "text": "10. Score with Canonical Weights\n\nmodel.load_state_dict(torch.load(DATA / \"best_finetune_model.pt\", map_location=device))\nmodel.eval()\n\npred_rows = []\nwith torch.no_grad():\n    for i in range(0, len(smiles_val), 32):\n        batch = list(smiles_val[i:i+32])\n        tokens = tokenizer(\n            batch, padding=True, truncation=True,\n            max_length=128, return_tensors=\"pt\"\n        ).to(device)\n        preds = model(tokens[\"input_ids\"], tokens[\"attention_mask\"]).cpu().numpy()\n        for k, cid in enumerate(val_compound_ids[i:i+32]):\n            for j, gid in enumerate(gene_filter):\n                pred_rows.append((cid, gid, float(preds[k, j])))\n\npred_df  = pd.DataFrame(pred_rows, columns=[\"compound\", \"gene_id\", \"predicted_expression\"])\ntruth_df = expression[expression[\"compound\"].isin(val_compound_ids)]\n\nper_compound = score_compounds(truth_df, pred_df, gene_filter=gene_filter, weights=W)\nresult       = aggregate_leaderboards(per_compound)\n\nprint(f\"Fine-tuned ChemBERTa wMSE: {result['wmse_mean']:.4f}\")\nprint(f\"ChemBERTa frozen:           0.5118\")\nprint(f\"Morgan MLP:                 0.5090\")\nprint(f\"README baseline:            0.507\")"
+  },
+  {
+    "objectID": "04_chemberta_finetune.html#generate-submission",
+    "href": "04_chemberta_finetune.html#generate-submission",
+    "title": "VCPI — ChemBERTa Fine-tuned End-to-End + wMSE Loss",
+    "section": "11. Generate Submission",
+    "text": "11. Generate Submission\n\nprint(\"Generating predictions for test compounds...\")\ntest_smiles = test_compounds[\"smiles\"].tolist()\ntest_cids   = test_compounds[\"compound\"].tolist()\n\nrows = []\nmodel.eval()\nwith torch.no_grad():\n    for i in range(0, len(test_smiles), 32):\n        batch = test_smiles[i:i+32]\n        tokens = tokenizer(\n            batch, padding=True, truncation=True,\n            max_length=128, return_tensors=\"pt\"\n        ).to(device)\n        preds = model(tokens[\"input_ids\"], tokens[\"attention_mask\"]).cpu().numpy()\n        for k, cid in enumerate(test_cids[i:i+32]):\n            for j, gid in enumerate(gene_filter):\n                rows.append((cid, gid, float(preds[k, j])))\n\nsubmission = pd.DataFrame(rows, columns=[\"compound\", \"gene_id\", \"predicted_expression\"])\nsubmission.to_csv(DATA / \"submission_finetune.csv\", index=False)\n\nprint(f\"Saved: {DATA / 'submission_finetune.csv'}\")\nprint(f\"Shape: {submission.shape}  (expected {len(test_compounds) * len(gene_filter):,} rows)\")\ndisplay(submission.head())"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Byte Sized ML",
+    "section": "",
+    "text": "Fine-Tuning ChemBERTa for Chemical Interaction Prediction\n\n\n\nMachine Learning\n\nChemBERTa\n\nNLP\n\nDrug Discovery\n\n\n\n\n\n\n\n\n\nJun 18, 2026\n\n\nHaad Khan\n\n\n\n\n\n\n\n\n\n\n\n\nCounting Number of Parameters in GPT2\n\n\n\nAttention\n\nTransformers\n\nGPT2\n\nMath\n\n\n\n\n\n\n\n\n\nMay 29, 2024\n\n\nHaad Khan\n\n\n\n\n\n\n\n\n\n\n\n\nBuilding Blocks of Transformers: 3. Extending single-head attention to multi-head attention\n\n\n\nMultihead-Attention\n\n\n\n\n\n\n\n\n\nDec 1, 2023\n\n\nHaad Khan\n\n\n\n\n\n\n\n\n\n\n\n\nBuilding Blocks of Transformers: 2. Position Representation\n\n\n\nAttention\n\nTransformers\n\nMachine Learning\n\n\n\n\n\n\n\n\n\nNov 12, 2023\n\n\nHaad Khan\n\n\n\n\n\n\n\n\n\n\n\n\nBuilding Blocks of Transformers: 1. Self Attention\n\n\n\nAttention\n\nTransformers\n\nMachine Learning\n\n\n\n\n\n\n\n\n\nNov 1, 2023\n\n\nHaad Khan\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/transformer-components/index.html",
@@ -63,17 +140,24 @@
     "text": "The attention module is typically extended into multiple attention modules sometimes referred to as attention heads. Multiple attention heads operate independently allowing the model to process different part of sequence differently.\nStacking multiple single-head attention layers\n\nThe transformer encoder is a stack of multiple attention heads \\(num\\_head\\) number of times.\n\n\n\n\nmulti-head-attention\n\n\n\nAfter computing the attention weights and context vectors form all heads are transposed to the shape of (b, num_tokens, num_heads, head_dim). The vectors are flattened into (b, num_tokens, d_out), effectively combining the outputs from all heads.\n\nBenefits of Multi-Head Attention\nDiverse Perspectives: By having multiple attention heads, the model can view the input data from different perspectives, allowing it to capture more complex patterns.\nReduced Overfitting: The ability to focus on various aspects of the data can help reduce the risk of overfitting, as the model doesn’t rely solely on a single representation.\nImproved Performance: Multi-head attention often leads to better performance in tasks like translation, summarization, and text classification, owing to its flexibility and robustness.\nReferences:\n\n1). Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin: “Attention Is All You Need”, 2017; arXiv:1706.03762"
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Byte Sized ML",
-    "section": "",
-    "text": "Counting Number of Parameters in GPT2\n\n\n\n\n\n\n\nAttention\n\n\nTransformers\n\n\nGPT2\n\n\nMath\n\n\n\n\n\n\n\n\n\n\n\nMay 29, 2024\n\n\nHaad Khan\n\n\n\n\n\n\n  \n\n\n\n\nBuilding Blocks of Transformers: 3. Extending single-head attention to multi-head attention\n\n\n\n\n\n\n\nMultihead-Attention\n\n\n\n\n\n\n\n\n\n\n\nDec 1, 2023\n\n\nHaad Khan\n\n\n\n\n\n\n  \n\n\n\n\nBuilding Blocks of Transformers: 2. Position Representation\n\n\n\n\n\n\n\nAttention\n\n\nTransformers\n\n\nMachine Learning\n\n\n\n\n\n\n\n\n\n\n\nNov 12, 2023\n\n\nHaad Khan\n\n\n\n\n\n\n  \n\n\n\n\nBuilding Blocks of Transformers: 1. Self Attention\n\n\n\n\n\n\n\nAttention\n\n\nTransformers\n\n\nMachine Learning\n\n\n\n\n\n\n\n\n\n\n\nNov 1, 2023\n\n\nHaad Khan\n\n\n\n\n\n\nNo matching items"
-  },
-  {
     "objectID": "posts/chemberta-finetune/index.html",
     "href": "posts/chemberta-finetune/index.html",
     "title": "Fine-Tuning ChemBERTa for Chemical Interaction Prediction",
     "section": "",
     "text": "In a recent hackathon, the VCPI prediction contest, I worked on predicting gene expression directly from chemical structures. The goal was to take a compound’s SMILES string (a text-based representation of its chemical structure) and predict its effect on the expression of 12,995 different genes.\nThis post walks through how I built an end-to-end fine-tuned model using ChemBERTa to solve this problem.\n\nThe Architecture\nTo tackle this challenge, I leveraged ChemBERTa (seyonec/ChemBERTa-zinc-base-v1), a RoBERTa-like transformer model pre-trained on millions of SMILES strings. Instead of just using ChemBERTa as a frozen feature extractor, I opted for an end-to-end fine-tuning approach where both the encoder and a custom MLP (Multi-Layer Perceptron) head learn together.\nThe overall architecture looks like this:\nSMILES → ChemBERTa (fine-tuned) → 384-dim → MLP head → 12,995 genes\n\nEncoder: The tokenized SMILES strings are passed through the ChemBERTa encoder. We use mean pooling over the token embeddings to extract a single 384-dimensional vector representing the entire molecule.\nMLP Head: This 384-dimensional embedding is then passed through a custom neural network head consisting of linear layers, batch normalization, ReLU activations, and dropout, finally outputting the predictions for the 12,995 genes.\n\n\n\nThe Training Strategy\nOne of the key improvements in this approach was optimizing for the exact metric used by the contest leaderboard: Weighted Mean Squared Error (wMSE).\n\nCustom wMSE Loss\nThe dataset provided a canonical weight matrix indicating the importance of different gene-compound pairs. I pre-computed weight vectors for each compound and built a custom wMSE loss function in PyTorch:\ndef wmse_loss(pred, truth, weights):\n    \"\"\"\n    pred, truth, weights: (batch_size, n_genes)\n    Returns scalar — mean wMSE over the batch.\n    \"\"\"\n    sq_err = (pred - truth) ** 2          # (batch, genes)\n    per_compound = (sq_err * weights).sum(dim=1)  # (batch,)\n    return per_compound.mean()\n\n\nDifferential Learning Rates\nSince the ChemBERTa encoder is already pre-trained and our MLP head is initialized randomly, applying the same learning rate to both would be suboptimal. A large learning rate might destroy the pre-trained weights of the encoder, while a small learning rate would make the MLP head learn too slowly.\nTo solve this, I used differential learning rates with the AdamW optimizer: - 1e-5 for the ChemBERTa encoder (small, for fine-tuning) - 1e-3 for the MLP head (larger, to learn the new mapping quickly)\n\n\n\nResults\nThe model was trained on a dataset of over 14,000 compounds. By fine-tuning the transformer end-to-end and directly optimizing the wMSE loss, the model was able to capture complex chemical representations tailored specifically to the task of gene expression prediction.\nThis end-to-end approach significantly outperformed simpler baselines, such as using frozen ChemBERTa embeddings with a separate model, or relying on traditional Morgan fingerprints.\nYou can find the full code and implementation details in the hackathon repository."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "I am Haad, an applied scientist working at the intersection of LLM and Healthcare. Outside of work he can be found on a sand court playing 🏐 or pickleball 🏓\nThe name of the blog “byte sized ML” is inspired from byte sized engineering https://www.bytesizedengineering.com/ ## Education\nUniversity of Michigan | Ann Arbor MI MS in NLP & Information Retreival | 2014 - 2016\nGIK University B.Eng | Aug 2010 - May 2014"
+  },
+  {
+    "objectID": "about.html#experience",
+    "href": "about.html#experience",
+    "title": "About",
+    "section": "Experience",
+    "text": "Experience\nOracle | Sr. Applied Scientist | Mar 2018 - Nov 2023 Cerebri AI | Data Scientist | Feb 2016 - Feb 2018"
   }
 ]

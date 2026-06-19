@@ -225,17 +225,17 @@ window.Quarto = {
 
 <p>
 </p><p>While going through the <a href="https://youtu.be/l8pRSuU81PU">Let’s reproduce GPT-2(124M)</a> I fell into the rabit hole of how the 124M parameter are distributed across the decoder of the transformer.</p>
-<div id="b48555f1" class="cell">
+<div id="428edc36" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install transformers torch</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="4bc61da2" class="cell">
+<div id="4c1f5693" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> GPT2Model</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> GPT2Model.from_pretrained(<span class="st">'openai-community/gpt2'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>
 Model String object contains the following information about the architecture.
 </p>
-<div id="a3bb4fc8" class="cell">
+<div id="a60fafee" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <pre><code>GPT2Model(
@@ -265,7 +265,7 @@ Model String object contains the following information about the architecture.
 <p>
 Lets write a utility to sum all the parameters of the model. I am using the numerize library to print in a more eye friendly format.
 </p>
-<div id="04575056" class="cell">
+<div id="2dfc5e43" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numerize <span class="im">import</span> numerize <span class="im">as</span> n</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters())</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in model: "</span>, n.numerize(total_params))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -321,7 +321,7 @@ No.&nbsp;of param = C x D = 1,024x768 = 786,432
 <p>
 To verify calculation, the function used to calculate for the entire model can be modified as following.
 </p>
-<div id="5b0fcbfe" class="cell">
+<div id="4637330e" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'wte'</span>].parameters())</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in model embedding wte: "</span>, n.numerize(total_params))</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>total_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'wpe'</span>].parameters())</span>
@@ -357,7 +357,7 @@ c_proj combines the output of multiple heads. Its a size of DxD matrix and an ad
 <p>
 No.&nbsp;of param in c_attn = [Dx(3D)+(3D)] = 1,771,776<br> No.&nbsp;of param in c_proj = [DxD+D] = 590,592<br> params = c_attn + c_proj = [Dx(3D)+(3D)] + [DxD+D] = 2,362,368
 </p>
-<div id="a658cb01" class="cell">
+<div id="b5bcc8ef" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>c_attn_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_attn.parameters())</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].attn.c_proj.parameters())</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_attn_params ))</span>
@@ -383,7 +383,7 @@ The feed-forward neural network has two linear transformations with a non-linear
 <p>
 c_fc = [Dx(4xD)+(4xD)] = 2,362,368<br> c_proj = [(4xD)xD+D] = 2,360,064<br> No.&nbsp;of param = [Dx(4D)+(4D)] + [(4D)xD+D] = 4,722,432
 </p>
-<div id="9f80c5d2" class="cell">
+<div id="9fef7ca3" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>c_fc_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_fc.parameters())</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>c_proj_params <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model._modules[<span class="st">'h'</span>][<span class="dv">0</span>].mlp.c_proj.parameters())</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of params in c_attn: "</span>, n.numerize(c_fc_params ))</span>
