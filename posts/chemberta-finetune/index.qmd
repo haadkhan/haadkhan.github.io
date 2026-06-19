@@ -8,7 +8,13 @@ date: "2026-06-18"
 categories: [Machine Learning, ChemBERTa, NLP, Drug Discovery]
 ---
 
-In a recent hackathon, the VCPI prediction contest, I worked on predicting gene expression directly from chemical structures. The goal was to take a compound's SMILES string (a text-based representation of its chemical structure) and predict its effect on the expression of 12,995 different genes.
+In a recent hackathon, the Virtual Cell Program Initiative (VCPI) prediction contest hosted by Ginkgo Bioworks, I worked on predicting gene expression directly from chemical structures. The primary goal of the contest—and the resulting model—was to enable high-throughput screening of compounds *in silico*. By taking a compound's SMILES string (a text-based representation of its chemical structure), the model predicts its downstream effect on the expression of 12,995 specific genes, bypassing the need for costly and time-consuming physical assays.
+
+### The Dataset
+
+The training data consisted of compound perturbational profiles across multiple experimental batches. In total, the raw dataset contained over 70,000 samples and roughly 78,000 gene measurements. However, the contest focused specifically on a 10 µM concentration level. After filtering for the relevant dose and control samples (like DMSO), the training set was distilled down to 32,500 profiles covering 14,031 unique compounds.
+
+For the target variables, the raw gene counts were converted to expression levels using a `log2(CPM + 1)` transformation. The final evaluation required predicting the exact expression values for these 12,995 genes across a blinded test set of 1,063 novel compounds, with performance scored via a Weighted Mean Squared Error (wMSE) metric.
 
 This post walks through how I built an end-to-end fine-tuned model using ChemBERTa to solve this problem.
 

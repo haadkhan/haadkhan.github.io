@@ -194,8 +194,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>In a recent hackathon, the VCPI prediction contest, I worked on predicting gene expression directly from chemical structures. The goal was to take a compound’s SMILES string (a text-based representation of its chemical structure) and predict its effect on the expression of 12,995 different genes.</p>
+<p>In a recent hackathon, the Virtual Cell Program Initiative (VCPI) prediction contest hosted by Ginkgo Bioworks, I worked on predicting gene expression directly from chemical structures. The primary goal of the contest—and the resulting model—was to enable high-throughput screening of compounds <em>in silico</em>. By taking a compound’s SMILES string (a text-based representation of its chemical structure), the model predicts its downstream effect on the expression of 12,995 specific genes, bypassing the need for costly and time-consuming physical assays.</p>
+<section id="the-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="the-dataset">The Dataset</h3>
+<p>The training data consisted of compound perturbational profiles across multiple experimental batches. In total, the raw dataset contained over 70,000 samples and roughly 78,000 gene measurements. However, the contest focused specifically on a 10 µM concentration level. After filtering for the relevant dose and control samples (like DMSO), the training set was distilled down to 32,500 profiles covering 14,031 unique compounds.</p>
+<p>For the target variables, the raw gene counts were converted to expression levels using a <code>log2(CPM + 1)</code> transformation. The final evaluation required predicting the exact expression values for these 12,995 genes across a blinded test set of 1,063 novel compounds, with performance scored via a Weighted Mean Squared Error (wMSE) metric.</p>
 <p>This post walks through how I built an end-to-end fine-tuned model using ChemBERTa to solve this problem.</p>
+</section>
 <section id="the-architecture" class="level3">
 <h3 class="anchored" data-anchor-id="the-architecture">The Architecture</h3>
 <p>To tackle this challenge, I leveraged <strong>ChemBERTa</strong> (<code>seyonec/ChemBERTa-zinc-base-v1</code>), a RoBERTa-like transformer model pre-trained on millions of SMILES strings. Instead of just using ChemBERTa as a frozen feature extractor, I opted for an end-to-end fine-tuning approach where both the encoder and a custom MLP (Multi-Layer Perceptron) head learn together.</p>
